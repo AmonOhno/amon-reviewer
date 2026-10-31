@@ -1,0 +1,51 @@
+# レビュー対象リポジトリ側に置くワークフロー例: .github/workflows/amon-reviewer.yml
+name: amon-reviewer
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review, closed]
+  workflow_dispatch:          # 手動でプロファイルを再解析
+    inputs:
+      force:
+        description: プロファイルを強制的に再解析する
+        type: boolean
+        default: true
+  schedule:
+    - cron: "17 3 * * 1"      # 毎週月曜にプロファイルを最新化（任意）
+
+concurrency:
+  group: amon-reviewer-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event.action == 'synchronize' }}
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  amon-reviewer:
+    # フォークからの PR には secrets が渡らないためスキップ
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      # 知識ストア（amon-reviewer リポジトリ）へ書き込むための GitHub App トークン
+      - id: knowledge-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ vars.AMON_REVIEWER_APP_ID }}
+          private-key: ${{ secrets.AMON_REVIEWER_APP_PRIVATE_KEY }}
+          owner: your-org
+          repositories: amon-reviewer
+
+      - uses: your-org/amon-reviewer@v1
+        with:
+          anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
+          knowledge-token: ${{ steps.knowledge-token.outputs.token }}
+          knowledge-repo: your-org/amon-reviewer
+          force-reanalyze: ${{ inputs.force || 'false' }}
+          # 任意:
+          # ignore-paths: |
+          #   generated/**
+          #   **/*.pb.ts
+          # request-changes-on: critical
+          # effort: xhigh

@@ -1,0 +1,19 @@
+# amon-reviewer 自身の PR を amon-reviewer でレビューする（ドッグフーディング）
+name: self-review
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review, closed]
+permissions:
+  contents: write        # 同一リポジトリの知識ブランチへ書き込むため
+  pull-requests: write
+jobs:
+  review:
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./
+        with:
+          anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
+          knowledge-token: ${{ github.token }}
+          knowledge-repo: ${{ github.repository }}

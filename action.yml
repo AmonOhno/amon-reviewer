@@ -1,0 +1,118 @@
+name: amon-reviewer
+description: >-
+  一般的なレビュー観点 + リポジトリごとに学習したアプリケーション特性（プロファイル）を前提に、
+  Claude で Pull Request をレビューするミドルウェア。プロファイルは amon-reviewer リポジトリ側に保持される。
+author: amon
+branding:
+  icon: eye
+  color: purple
+
+inputs:
+  anthropic-api-key:
+    description: Claude API キー
+    required: true
+  github-token:
+    description: レビュー対象リポジトリの読み取り & PR コメント投稿に使うトークン（通常は secrets.GITHUB_TOKEN）
+    required: false
+    default: ${{ github.token }}
+  knowledge-token:
+    description: >-
+      amon-reviewer リポジトリ（知識ストア）へ書き込むためのトークン。
+      contents:write 権限を持つ GitHub App トークン or fine-grained PAT。
+    required: true
+  knowledge-repo:
+    description: 知識ストアのリポジトリ（owner/name）。未指定時はこの Action 自身のリポジトリ。
+    required: false
+    default: ""
+  knowledge-branch:
+    description: プロファイルを保存するブランチ（存在しなければデフォルトブランチから作成）
+    required: false
+    default: amon-knowledge
+  mode:
+    description: "auto | review | analyze | learn。auto はイベント種別から判定"
+    required: false
+    default: auto
+  model:
+    description: 使用する Claude モデル
+    required: false
+    default: claude-opus-5-5
+  effort:
+    description: "推論の深さ low | medium | high | xhigh | max"
+    required: false
+    default: high
+  language:
+    description: レビューコメントの言語
+    required: false
+    default: 日本語
+  profile-max-age-days:
+    description: この日数を超えたプロファイルはレビュー前に再解析する
+    required: false
+    default: "30"
+  force-reanalyze:
+    description: "true ならプロファイルを必ず再解析する"
+    required: false
+    default: "false"
+  instructions-path:
+    description: レビュー対象リポジトリ内の追加指示ファイル（デフォルトブランチから読む）
+    required: false
+    default: .github/amon-reviewer.md
+  ignore-paths:
+    description: レビュー対象から除外するパス（改行 or カンマ区切りの glob）
+    required: false
+    default: ""
+  max-findings:
+    description: インラインコメントの最大件数
+    required: false
+    default: "20"
+  request-changes-on:
+    description: "この重大度以上の指摘があれば REQUEST_CHANGES で投稿（none | critical | high）"
+    required: false
+    default: none
+  dry-run:
+    description: "true なら PR への投稿・知識ストアへの書き込みを行わずログ出力のみ"
+    required: false
+    default: "false"
+
+outputs:
+  findings-count:
+    description: 投稿した指摘数
+    value: ${{ steps.run.outputs.findings-count }}
+  profile-path:
+    description: 知識ストア内のプロファイルパス
+    value: ${{ steps.run.outputs.profile-path }}
+  profile-updated:
+    description: このランでプロファイルが更新されたか
+    value: ${{ steps.run.outputs.profile-updated }}
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-node@v4
+      with:
+        node-version: "22"
+    - name: Install amon-reviewer dependencies
+      shell: bash
+      working-directory: ${{ github.action_path }}
+      run: npm ci --omit=dev --no-audit --no-fund --loglevel=error
+    - name: Run amon-reviewer
+      id: run
+      shell: bash
+      env:
+        AMON_ANTHROPIC_API_KEY: ${{ inputs.anthropic-api-key }}
+        AMON_GITHUB_TOKEN: ${{ inputs.github-token }}
+        AMON_KNOWLEDGE_TOKEN: ${{ inputs.knowledge-token }}
+        AMON_KNOWLEDGE_REPO: ${{ inputs.knowledge-repo }}
+        AMON_KNOWLEDGE_BRANCH: ${{ inputs.knowledge-branch }}
+        AMON_MODE: ${{ inputs.mode }}
+        AMON_MODEL: ${{ inputs.model }}
+        AMON_EFFORT: ${{ inputs.effort }}
+        AMON_LANGUAGE: ${{ inputs.language }}
+        AMON_PROFILE_MAX_AGE_DAYS: ${{ inputs.profile-max-age-days }}
+        AMON_FORCE_REANALYZE: ${{ inputs.force-reanalyze }}
+        AMON_INSTRUCTIONS_PATH: ${{ inputs.instructions-path }}
+        AMON_IGNORE_PATHS: ${{ inputs.ignore-paths }}
+        AMON_MAX_FINDINGS: ${{ inputs.max-findings }}
+        AMON_REQUEST_CHANGES_ON: ${{ inputs.request-changes-on }}
+        AMON_DRY_RUN: ${{ inputs.dry-run }}
+        AMON_ACTION_REPOSITORY: ${{ github.action_repository }}
+      run: node "${{ github.action_path }}/src/index.mjs"
