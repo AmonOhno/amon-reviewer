@@ -1,0 +1,25 @@
+# amon-reviewer 自身の PR を amon-reviewer でレビューする（ドッグフーディング）
+name: self-review
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review, closed]
+permissions:
+  contents: write        # 同一リポジトリの知識ブランチへ書き込むため
+  pull-requests: write
+jobs:
+  review:
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    env:
+      HAS_KEY: ${{ secrets.ANTHROPIC_API_KEY != '' }}
+    steps:
+      - if: env.HAS_KEY != 'true'
+        run: echo "::notice::ANTHROPIC_API_KEY が未設定のため self-review をスキップします"
+      - if: env.HAS_KEY == 'true'
+        uses: actions/checkout@v5
+      - if: env.HAS_KEY == 'true'
+        uses: ./
+        with:
+          anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
+          knowledge-token: ${{ github.token }}
+          knowledge-repo: ${{ github.repository }}

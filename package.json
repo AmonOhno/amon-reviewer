@@ -1,0 +1,20 @@
+{
+  "name": "amon-reviewer",
+  "version": "0.1.0",
+  "description": "GitHub Actions PR reviewer that learns each repository's application profile",
+  "main": "src/index.mjs",
+  "scripts": {
+    "start": "node src/index.mjs",
+    "test": "node --test test/*.test.mjs"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^1.3.0",
+    "@octokit/rest": "^22.0.1"
+  },
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  }
+}
