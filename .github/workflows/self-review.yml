@@ -10,9 +10,15 @@ jobs:
   review:
     if: github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
+    env:
+      HAS_KEY: ${{ secrets.ANTHROPIC_API_KEY != '' }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: ./
+      - if: env.HAS_KEY != 'true'
+        run: echo "::notice::ANTHROPIC_API_KEY が未設定のため self-review をスキップします"
+      - if: env.HAS_KEY == 'true'
+        uses: actions/checkout@v5
+      - if: env.HAS_KEY == 'true'
+        uses: ./
         with:
           anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
           knowledge-token: ${{ github.token }}
