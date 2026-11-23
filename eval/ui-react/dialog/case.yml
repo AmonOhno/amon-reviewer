@@ -1,0 +1,7 @@
+name: dialog
+perspective: ui-react
+description: >-
+  モーダルダイアログを追加するPR。
+  オーバーレイ系の部品で起きやすい問題（クリーンアップ漏れ、フォーカス管理、キーボード操作など）を含む。
+tags: [lifecycle, a11y, test]
+expected: expected.md

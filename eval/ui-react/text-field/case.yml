@@ -1,0 +1,7 @@
+name: text-field
+perspective: ui-react
+description: >-
+  ラベル付きのテキスト入力コンポーネントを追加するPR。
+  フォーム部品で起きやすい問題（制御／非制御、ラベルの関連付け、業務ロジックの混入など）を含む。
+tags: [api, extensibility, lifecycle, a11y, i18n, test]
+expected: expected.md

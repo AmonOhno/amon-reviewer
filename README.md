@@ -58,16 +58,16 @@ cat amon-review.md
 
 ## 精度の検証
 
-`eval/<観点>/<ケース名>/` に、サンプルPR（`fixture/`）と期待される指摘（`expected.md`）を置いています。
+`eval/<観点>/<ケース名>/` に、問題を仕込んだ小さなサンプルPR（`fixture/`）と期待される指摘（`expected.md`）を置いています。
+ui-react には、種類の違う部品（テキスト入力、ダイアログ、選択肢リスト、トースト通知）のケースがあり、観点MDの必須観点を分担して扱っています。
 
 ```bash
-scripts/eval.sh ui-react/toast-notification
+scripts/eval.sh            # すべてのケース
+scripts/eval.sh ui-react   # 観点MDごと
 ```
 
-結果は `eval/<観点>/<ケース名>/runs/<日時>.md` に保存されます。`expected.md` と見比べて、何件拾えたか（見逃し）と、的外れな指摘が何件出たか（ノイズ）を数えます。
-観点MDやプロンプトを変えたら、同じケースで数回ずつ実行して比べてください。
-
-`eval/` には、どのアプリでも使える汎用的なケースだけを置きます。アプリ固有のケースは、各アプリのリポの `.amon-reviewer/eval/` に置いてください。
+結果は各ケースの `runs/<日時>.md` に保存されます。`expected.md` と見比べて、見逃しとノイズの件数を数えます。
+ケースの書き方と、観点ごとの対応表は [`eval/README.md`](eval/README.md) にあります。
 
 ## 構成
 
@@ -81,8 +81,9 @@ amon-reviewer/
 │   ├─ post-comment.sh        # 結果を gh で PR に投稿
 │   └─ eval.sh                # 精度検証ケースを手元で実行
 ├─ eval/
+│   ├─ README.md              # ケースの書き方と観点の対応表
 │   └─ ui-react/
-│       └─ toast-notification/  # 精度検証用のサンプルPRと期待される指摘
+│       └─ <ケース名>/         # 精度検証用のサンプルPRと期待される指摘
 └─ examples/
     └─ workflow.yml           # 対象リポに置く workflow の見本
 ```
