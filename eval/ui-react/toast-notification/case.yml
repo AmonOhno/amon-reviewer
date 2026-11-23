@@ -1,7 +1,0 @@
-name: toast-notification
-perspective: ui-react
-description: >-
-  トースト通知コンポーネントを追加するPR。
-  通知系の部品で起きやすい問題（effect の実行順、live region、スクロール処理、不正値の扱いの不一致など）を含む。
-tags: [lifecycle, a11y, performance, runtime-defense, spec, test]
-expected: expected.md

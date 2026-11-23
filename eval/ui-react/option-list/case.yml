@@ -1,7 +1,0 @@
-name: option-list
-perspective: ui-react
-description: >-
-  絞り込みと複数選択ができる選択肢リストを追加するPR。
-  一覧系の部品で起きやすい問題（key、再レンダリング、大量データ、外部データの null など）を含む。
-tags: [lifecycle, performance, runtime-defense, a11y]
-expected: expected.md

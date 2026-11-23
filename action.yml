@@ -24,27 +24,13 @@ inputs:
     description: Claude Code セッションの最大ターン数
     required: false
     default: "30"
-  max_budget_usd:
-    description: 1回のレビューにかけてよい上限金額（USD）。空なら上限なし
-    required: false
-    default: ""
-  model:
-    description: 使うモデル。空なら Claude Code の既定
-    required: false
-    default: ""
-  claude_code_version:
-    description: インストールする Claude Code のバージョン
-    required: false
-    default: latest
 
 runs:
   using: composite
   steps:
     - name: Install Claude Code
       shell: bash
-      run: npm install -g "@anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}"
-      env:
-        CLAUDE_CODE_VERSION: ${{ inputs.claude_code_version }}
+      run: npm install -g @anthropic-ai/claude-code
 
     - name: Review
       shell: bash
@@ -56,8 +42,6 @@ runs:
         PERSPECTIVE: ${{ inputs.perspective }}
         PROJECT_CONTEXT: ${{ inputs.context }}
         MAX_TURNS: ${{ inputs.max_turns }}
-        MAX_BUDGET_USD: ${{ inputs.max_budget_usd }}
-        CLAUDE_MODEL: ${{ inputs.model }}
         DIFF_RANGE: origin/${{ github.base_ref }}...HEAD
         OUTPUT: ${{ runner.temp }}/amon-review.md
 

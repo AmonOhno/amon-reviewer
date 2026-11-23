@@ -6,8 +6,6 @@
 #   PERSPECTIVE     観点MDの名前（既定: ui-react）
 #   OUTPUT          結果の出力先（既定: ./amon-review.md）
 #   MAX_TURNS       セッションの最大ターン数（既定: 30）
-#   MAX_BUDGET_USD  1回のレビューにかけてよい上限金額（USD、省略可）
-#   CLAUDE_MODEL    使うモデル（省略時は Claude Code の既定）
 #   ACTION_DIR      amon-reviewer のルート（既定: このスクリプトの親ディレクトリ）
 #   REPO_DIR        レビュー対象リポのルート（既定: カレントディレクトリ）
 #   PROJECT_CONTEXT 呼び出し元の前提（テストランナー・スタイリング・既存の規約など）。省略可
@@ -26,8 +24,6 @@ REPO_DIR=${REPO_DIR:-$PWD}
 PERSPECTIVE=${PERSPECTIVE:-ui-react}
 OUTPUT=${OUTPUT:-$PWD/amon-review.md}
 MAX_TURNS=${MAX_TURNS:-30}
-MAX_BUDGET_USD=${MAX_BUDGET_USD:-}
-CLAUDE_MODEL=${CLAUDE_MODEL:-}
 DIFF_RANGE=${DIFF_RANGE:-}
 PROJECT_CONTEXT=${PROJECT_CONTEXT:-}
 
@@ -89,8 +85,6 @@ args=(
   --allowedTools "$ALLOWED_TOOLS"
   --disallowedTools "$DISALLOWED_TOOLS"
 )
-[[ -n $MAX_BUDGET_USD ]] && args+=(--max-budget-usd "$MAX_BUDGET_USD")
-[[ -n $CLAUDE_MODEL ]] && args+=(--model "$CLAUDE_MODEL")
 
 raw=$(mktemp)
 trap 'rm -f "$raw"' EXIT
@@ -110,12 +104,7 @@ fi
 
 turns=$(jq -r '.num_turns // "?"' "$raw")
 cost=$(jq -r 'if .total_cost_usd then (.total_cost_usd * 100 | round / 100 | tostring) else "?" end' "$raw")
-if [[ -n ${PROJECT_CONTEXT//[[:space:]]/} ]]; then context_label=指定あり; else context_label=リポジトリから確認; fi
 
-{
-  printf '## amon-reviewer\n\n'
-  printf '%s\n\n' "$result"
-  printf -- '---\n<sub>観点: %s · 前提: %s · ターン数: %s · コスト: $%s</sub>\n' "$PERSPECTIVE" "$context_label" "$turns" "$cost"
-} > "$OUTPUT"
+printf '## amon-reviewer\n\n%s\n' "$result" > "$OUTPUT"
 
 echo "amon-reviewer: 結果を $OUTPUT に書き出しました（ターン数: $turns、コスト: \$$cost）"

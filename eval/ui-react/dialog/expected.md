@@ -1,11 +1,5 @@
-# 期待される指摘
-
-言い回しは問わず、同じ問題を指していれば「拾えた」と数えます。
-
-| # | 指摘 | 観点 | 主な箇所 |
-| --- | --- | --- | --- |
-| 1 | effect にクリーンアップがなく、keydown リスナーが残り続け、`body` の `overflow` も元に戻らない。依存配列に `onClose` がなく古い関数を呼ぶ | 状態とライフサイクル | `src/Dialog.tsx` |
-| 2 | `role="dialog"`・`aria-modal`・タイトルとの関連付け（`aria-labelledby`）がない | アクセシビリティ | `src/Dialog.tsx` |
-| 3 | 開いたときにフォーカスがダイアログ内に移らず、閉じ込めもなく、閉じたあと元の要素に戻らない | アクセシビリティ | `src/Dialog.tsx` |
-| 4 | 閉じるボタンが `<div>` で、キーボードで操作できず、「×」だけで読み上げ用の名前もない。既存の `Button`（`src/Button.tsx`）を使っていない | アクセシビリティ | `src/Dialog.tsx` |
-| 5 | テストがスナップショットだけで、Esc や背景クリックで閉じる振る舞いを検証していない | テスト | `src/Dialog.test.tsx` |
+1. `src/Dialog.tsx`：effect にクリーンアップがなく、keydown リスナーと `body` の `overflow` が残る。依存配列に `onClose` がない
+2. `src/Dialog.tsx`：`role="dialog"`・`aria-modal`・タイトルとの関連付けがない
+3. `src/Dialog.tsx`：開いたときにフォーカスが移らず、閉じ込めもなく、閉じたあと元に戻らない
+4. `src/Dialog.tsx`：閉じるボタンが `<div>` でキーボード操作できず、名前もない。既存の `Button` を使っていない
+5. `src/Dialog.test.tsx`：Esc や背景クリックで閉じる振る舞いを検証していない

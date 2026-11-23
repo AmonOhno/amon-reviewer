@@ -13,7 +13,7 @@
 # 正解は同じフォルダの expected.md。何件拾えたか（見逃し）と、的外れな指摘の件数を見比べる。
 #
 # ANTHROPIC_API_KEY（または claude にログイン済みであること）が必要。
-# MAX_TURNS・MAX_BUDGET_USD・CLAUDE_MODEL は review.sh にそのまま渡る。
+# MAX_TURNS は review.sh にそのまま渡る。
 set -euo pipefail
 
 die() {
@@ -31,7 +31,7 @@ target=${1:-}
 # 対象のケース（eval/<観点>/<ケース名>）を集める。
 cases=()
 for dir in "$EVAL_DIR"/${target:-*}/ "$EVAL_DIR"/${target:-*}/*/; do
-  [[ -f $dir/case.yml && -d $dir/fixture ]] || continue
+  [[ -f $dir/expected.md && -d $dir/fixture ]] || continue
   cases+=("${dir%/}")
 done
 ((${#cases[@]} > 0)) || die "ケースが見つかりません: eval/${target:-*}"
@@ -43,7 +43,6 @@ run_case() {
   local case_dir=$1
   local case_id=${case_dir#"$EVAL_DIR"/}
   local perspective=${case_id%%/*}
-  [[ -f $case_dir/expected.md ]] || die "expected.md が見つかりません: $case_dir"
 
   local work
   work=$(mktemp -d "$tmp_root/case.XXXXXX")
