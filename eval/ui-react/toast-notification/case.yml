@@ -1,0 +1,7 @@
+name: toast-notification
+perspective: ui-react
+description: >-
+  トースト通知コンポーネントを追加するPR。
+  実際のレビューで見つかった5つの問題を、製品とは別に書き起こした再現コードに含めている。
+tags: [lifecycle, a11y, performance, consistency, test]
+expected: expected.md

@@ -1,0 +1,29 @@
+# レビュー対象のリポジトリに .github/workflows/amon-reviewer.yml として置く見本。
+# 事前に、対象リポの Secrets に ANTHROPIC_API_KEY を登録しておく。
+name: amon-reviewer
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  review:
+    # フォークからのPRでは動かさない（Secrets を渡さないため）。
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # base ブランチとの差分を取るため、履歴をすべて取得する。
+          fetch-depth: 0
+
+      # リリースタグを切るまでは @main を指定する。
+      - uses: AmonOhno/amon-reviewer@main
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          perspective: ui-react

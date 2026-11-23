@@ -1,0 +1,63 @@
+name: amon-reviewer
+description: 観点MDを渡して Claude Code にPRをレビューさせ、結果をPRにコメントする
+author: AmonOhno
+
+inputs:
+  anthropic_api_key:
+    description: Anthropic の APIキー。対象リポの Secrets に登録して渡す
+    required: true
+  github_token:
+    description: PRにコメントするためのトークン
+    required: false
+    default: ${{ github.token }}
+  perspective:
+    description: 使う観点MDの名前。対象リポの .amon-reviewer/<名前>.md、なければ amon-reviewer の perspectives/<名前>.md を使う
+    required: false
+    default: ui-react
+  max_turns:
+    description: Claude Code セッションの最大ターン数
+    required: false
+    default: "30"
+  max_budget_usd:
+    description: 1回のレビューにかけてよい上限金額（USD）。空なら上限なし
+    required: false
+    default: ""
+  model:
+    description: 使うモデル。空なら Claude Code の既定
+    required: false
+    default: ""
+  claude_code_version:
+    description: インストールする Claude Code のバージョン
+    required: false
+    default: latest
+
+runs:
+  using: composite
+  steps:
+    - name: Install Claude Code
+      shell: bash
+      run: npm install -g "@anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}"
+      env:
+        CLAUDE_CODE_VERSION: ${{ inputs.claude_code_version }}
+
+    - name: Review
+      shell: bash
+      run: '"$GITHUB_ACTION_PATH/scripts/review.sh"'
+      env:
+        ANTHROPIC_API_KEY: ${{ inputs.anthropic_api_key }}
+        ACTION_DIR: ${{ github.action_path }}
+        REPO_DIR: ${{ github.workspace }}
+        PERSPECTIVE: ${{ inputs.perspective }}
+        MAX_TURNS: ${{ inputs.max_turns }}
+        MAX_BUDGET_USD: ${{ inputs.max_budget_usd }}
+        CLAUDE_MODEL: ${{ inputs.model }}
+        DIFF_RANGE: origin/${{ github.base_ref }}...HEAD
+        OUTPUT: ${{ runner.temp }}/amon-review.md
+
+    - name: Post comment
+      shell: bash
+      run: '"$GITHUB_ACTION_PATH/scripts/post-comment.sh"'
+      env:
+        GH_TOKEN: ${{ inputs.github_token }}
+        PR_NUMBER: ${{ github.event.pull_request.number }}
+        REVIEW_FILE: ${{ runner.temp }}/amon-review.md
