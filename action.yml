@@ -1,5 +1,5 @@
 name: amon-reviewer
-description: 観点MDを渡して Claude Code にPRをレビューさせ、結果をPRにコメントする
+description: PR のレビューを Claude Code のセッションに任せ、結果をコメントし、得た知見をブランチに貯める
 author: AmonOhno
 
 inputs:
@@ -7,7 +7,7 @@ inputs:
     description: Anthropic の APIキー。対象リポの Secrets に登録して渡す
     required: true
   github_token:
-    description: PRにコメントするためのトークン
+    description: PR へのコメントと、知見のブランチへの push に使うトークン
     required: false
     default: ${{ github.token }}
   perspective:
@@ -18,15 +18,30 @@ inputs:
     description: 呼び出し元の前提（テストランナー、スタイリングの方法、既存の規約など）。省略可
     required: false
     default: ""
+  knowledge_branch:
+    description: 知見を貯めるブランチ。空にすると知見を貯めない
+    required: false
+    default: amon-reviewer-knowledge
 
 runs:
   using: composite
   steps:
+    # ---- PR が作成・更新されたとき: レビューしてコメントし、知見を保留として保存する ----
     - name: Install Claude Code
+      if: github.event.action != 'closed'
       shell: bash
       run: npm install -g @anthropic-ai/claude-code
 
+    - name: Load knowledge
+      if: github.event.action != 'closed' && inputs.knowledge_branch != ''
+      shell: bash
+      run: '"$GITHUB_ACTION_PATH/scripts/knowledge.sh" export "$RUNNER_TEMP/amon-knowledge"'
+      env:
+        KNOWLEDGE_BRANCH: ${{ inputs.knowledge_branch }}
+        REPO_DIR: ${{ github.workspace }}
+
     - name: Review
+      if: github.event.action != 'closed'
       shell: bash
       run: '"$GITHUB_ACTION_PATH/scripts/review.sh"'
       env:
@@ -37,11 +52,45 @@ runs:
         PROJECT_CONTEXT: ${{ inputs.context }}
         DIFF_RANGE: origin/${{ github.base_ref }}...HEAD
         OUTPUT: ${{ runner.temp }}/amon-review.md
+        KNOWLEDGE_DIR: ${{ inputs.knowledge_branch != '' && format('{0}/amon-knowledge', runner.temp) || '' }}
+        SUMMARY_OUTPUT: ${{ inputs.knowledge_branch != '' && format('{0}/amon-summary.md', runner.temp) || '' }}
 
     - name: Post comment
+      if: github.event.action != 'closed'
       shell: bash
       run: '"$GITHUB_ACTION_PATH/scripts/post-comment.sh"'
       env:
         GH_TOKEN: ${{ inputs.github_token }}
         PR_NUMBER: ${{ github.event.pull_request.number }}
         REVIEW_FILE: ${{ runner.temp }}/amon-review.md
+
+    - name: Save knowledge as pending
+      if: github.event.action != 'closed' && inputs.knowledge_branch != ''
+      shell: bash
+      run: |
+        if [[ -s $RUNNER_TEMP/amon-summary.md ]]; then
+          "$GITHUB_ACTION_PATH/scripts/knowledge.sh" save-pending "$PR_NUMBER" "$RUNNER_TEMP/amon-summary.md"
+        else
+          echo "amon-reviewer: 保存する知見はありません"
+        fi
+      env:
+        KNOWLEDGE_BRANCH: ${{ inputs.knowledge_branch }}
+        REPO_DIR: ${{ github.workspace }}
+        PR_NUMBER: ${{ github.event.pull_request.number }}
+        PR_TITLE: ${{ github.event.pull_request.title }}
+
+    # ---- PR が閉じられたとき: マージされたら保留を知見に採用し、そうでなければ捨てる ----
+    - name: Adopt or discard knowledge
+      if: github.event.action == 'closed' && inputs.knowledge_branch != ''
+      shell: bash
+      run: |
+        if [[ $MERGED == true ]]; then
+          "$GITHUB_ACTION_PATH/scripts/knowledge.sh" adopt "$PR_NUMBER"
+        else
+          "$GITHUB_ACTION_PATH/scripts/knowledge.sh" discard "$PR_NUMBER"
+        fi
+      env:
+        KNOWLEDGE_BRANCH: ${{ inputs.knowledge_branch }}
+        REPO_DIR: ${{ github.workspace }}
+        PR_NUMBER: ${{ github.event.pull_request.number }}
+        MERGED: ${{ github.event.pull_request.merged }}

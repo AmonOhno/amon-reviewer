@@ -8,6 +8,8 @@
 #   ACTION_DIR      amon-reviewer のルート（既定: このスクリプトの親ディレクトリ）
 #   REPO_DIR        レビュー対象リポのルート（既定: カレントディレクトリ）
 #   PROJECT_CONTEXT 呼び出し元の前提（省略可）
+#   KNOWLEDGE_DIR   過去のレビューで得た知見のディレクトリ（省略可）。置き場所だけをセッションに伝える
+#   SUMMARY_OUTPUT  指定すると、レビュー後に同じセッションを再開して知見の要約をここに書き出す（省略可）
 #
 # 観点MDは「対象リポの .amon-reviewer/<名前>.md」→「amon-reviewer の perspectives/<名前>.md」の順に探す。
 set -euo pipefail
@@ -23,6 +25,8 @@ PERSPECTIVE=${PERSPECTIVE:-ui-react}
 OUTPUT=${OUTPUT:-$PWD/amon-review.md}
 DIFF_RANGE=${DIFF_RANGE:-}
 PROJECT_CONTEXT=${PROJECT_CONTEXT:-}
+KNOWLEDGE_DIR=${KNOWLEDGE_DIR:-}
+SUMMARY_OUTPUT=${SUMMARY_OUTPUT:-}
 
 # 安全のため、セッションには読み取り系のツールだけを許可する。
 # PRの本文やコードに仕込まれた指示で、書き込み・push・トークンの持ち出しをされないようにするため。
@@ -61,21 +65,32 @@ case $diff_status in
   *) die "差分を取得できません: $DIFF_RANGE（actions/checkout で fetch-depth: 0 を指定していますか）" ;;
 esac
 
-# レビューの進め方はセッションに任せる。渡すのは観点MD・呼び出し元の前提・レビュー対象の範囲だけ。
+has_knowledge=false
+if [[ -n $KNOWLEDGE_DIR && -d $KNOWLEDGE_DIR ]] && find "$KNOWLEDGE_DIR" -name '*.md' -print -quit | grep -q .; then
+  has_knowledge=true
+fi
+
+# レビューの進め方はセッションに任せる。渡すのは観点MD・呼び出し元の前提・過去の知見の置き場所・レビュー対象の範囲だけ。
 prompt=$(
   cat "$perspective_file"
   if [[ -n ${PROJECT_CONTEXT//[[:space:]]/} ]]; then
     printf '\n\n## このリポジトリの前提\n\n%s\n' "$PROJECT_CONTEXT"
   fi
+  if [[ $has_knowledge == true ]]; then
+    printf '\n\n## 過去のレビューで得た知見\n\n`%s`\n' "$KNOWLEDGE_DIR"
+  fi
   printf '\n\n## レビュー対象\n\n`git diff %s`\n' "$DIFF_RANGE"
 )
 
-args=(
-  -p "$prompt"
+session_args=(
   --output-format json
   --allowedTools "$ALLOWED_TOOLS"
   --disallowedTools "$DISALLOWED_TOOLS"
 )
+if [[ $has_knowledge == true ]]; then
+  session_args+=(--add-dir "$KNOWLEDGE_DIR")
+fi
+args=(-p "$prompt" "${session_args[@]}")
 
 raw=$(mktemp)
 trap 'rm -f "$raw"' EXIT
@@ -99,3 +114,27 @@ cost=$(jq -r 'if .total_cost_usd then (.total_cost_usd * 100 | round / 100 | tos
 printf '## amon-reviewer\n\n%s\n' "$result" > "$OUTPUT"
 
 echo "amon-reviewer: 結果を $OUTPUT に書き出しました（ターン数: $turns、コスト: \$$cost）"
+
+# 知見の要約。レビューは済んでいるので、失敗してもレビュー自体は失敗させない。
+if [[ -n $SUMMARY_OUTPUT ]]; then
+  : > "$SUMMARY_OUTPUT"
+  session_id=$(jq -r '.session_id // ""' "$raw")
+  summary_raw=$(mktemp)
+  summary_prompt='このレビューのやり取りで分かったことのうち、今後このリポジトリをレビューするときに役立つ知見を Markdown で要約してください。特になければ「なし」とだけ書いてください。'
+  if [[ -z $session_id ]]; then
+    echo "amon-reviewer: セッションIDが取れないため、知見の要約を省略します" >&2
+  elif ! claude -p "$summary_prompt" --resume "$session_id" "${session_args[@]}" > "$summary_raw"; then
+    echo "amon-reviewer: 知見の要約に失敗しました（レビューは完了しています）" >&2
+  elif [[ $(jq -r '.is_error // false' "$summary_raw") == true ]]; then
+    echo "amon-reviewer: 知見の要約に失敗しました（レビューは完了しています）" >&2
+  else
+    summary=$(jq -r '.result // ""' "$summary_raw")
+    if [[ -n ${summary//[[:space:]]/} && $summary != なし ]]; then
+      printf '%s\n' "$summary" > "$SUMMARY_OUTPUT"
+      echo "amon-reviewer: 知見の要約を $SUMMARY_OUTPUT に書き出しました"
+    else
+      echo "amon-reviewer: 残す知見はありませんでした"
+    fi
+  fi
+  rm -f "$summary_raw"
+fi
