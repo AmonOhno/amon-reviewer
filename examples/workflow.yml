@@ -24,7 +24,7 @@ jobs:
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           perspective: ui-react
-          # 省略可。書かなかった点は Claude がリポジトリを読んで確かめる
+          # 省略可
           context: |
             - React 18 / TypeScript
             - テストは Vitest + Testing Library

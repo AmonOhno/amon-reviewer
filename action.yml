@@ -15,15 +15,9 @@ inputs:
     required: false
     default: ui-react
   context:
-    description: >-
-      呼び出し元の前提（テストランナー、スタイリングの方法、既存コンポーネントの規約など）。
-      複数行で書ける。省略した点は Claude がリポジトリを読んで確認する
+    description: 呼び出し元の前提（テストランナー、スタイリングの方法、既存の規約など）。省略可
     required: false
     default: ""
-  max_turns:
-    description: Claude Code セッションの最大ターン数
-    required: false
-    default: "30"
 
 runs:
   using: composite
@@ -41,7 +35,6 @@ runs:
         REPO_DIR: ${{ github.workspace }}
         PERSPECTIVE: ${{ inputs.perspective }}
         PROJECT_CONTEXT: ${{ inputs.context }}
-        MAX_TURNS: ${{ inputs.max_turns }}
         DIFF_RANGE: origin/${{ github.base_ref }}...HEAD
         OUTPUT: ${{ runner.temp }}/amon-review.md
 
