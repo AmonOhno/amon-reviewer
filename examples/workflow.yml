@@ -1,0 +1,34 @@
+# 対象リポの .github/workflows/amon-reviewer.yml に置く。Secrets に ANTHROPIC_API_KEY が必要。
+name: amon-reviewer
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, closed]
+
+permissions:
+  contents: write # 知見のブランチへの push に使う。main にはブランチ保護をかけておくこと
+  pull-requests: write
+
+jobs:
+  review:
+    # フォークからのPRでは動かさない
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          # 閉じられたPRはマージ用の参照が消えていることがあるため、既定ブランチを取得する
+          ref: ${{ github.event.action == 'closed' && github.event.repository.default_branch || '' }}
+
+      - uses: AmonOhno/amon-reviewer@main
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          perspective: ui-react
+          # 省略可
+          context: |
+            - React 18 / TypeScript
+            - テストは Vitest + Testing Library
+            - スタイルは CSS Modules とデザイントークン（src/tokens）
+            - 共通コンポーネントは forwardRef でネイティブ要素に ref を渡す
