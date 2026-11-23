@@ -6,8 +6,10 @@
 #   scripts/eval.sh <観点>                  その観点MDのケースすべて（例: ui-react）
 #   scripts/eval.sh <観点>/<ケース名>        1ケースだけ（例: ui-react/dialog）
 #
-# ケースごとに、一時ディレクトリへ「main（空）→ sample-pr（fixture を追加）」の Git リポジトリを作り、
+# ケースごとに、一時ディレクトリへ「main（base/ の中身）→ sample-pr（fixture/ を追加）」の Git リポジトリを作り、
 # review.sh でレビューさせた結果を eval/<観点>/<ケース名>/runs/<日時>.md に保存する。
+# ケースに context.md があれば、その内容を呼び出し元の前提（PROJECT_CONTEXT）として渡す。
+# ない場合は、Claude がリポジトリ（base/ の内容）を読んで前提を確認する。
 # 正解は同じフォルダの expected.md。何件拾えたか（見逃し）と、的外れな指摘の件数を見比べる。
 #
 # ANTHROPIC_API_KEY（または claude にログイン済みであること）が必要。
@@ -49,6 +51,9 @@ run_case() {
   local -a git_in_work=(git -C "$work" -c user.name=amon-reviewer -c user.email=amon-reviewer@localhost)
   "${git_in_work[@]}" init -q -b main
   printf '# sample\n' > "$work/README.md"
+  if [[ -d $case_dir/base ]]; then
+    cp -R "$case_dir/base/." "$work/"
+  fi
   "${git_in_work[@]}" add -A
   "${git_in_work[@]}" commit -q -m "base"
   "${git_in_work[@]}" checkout -q -b sample-pr
@@ -60,8 +65,14 @@ run_case() {
   local output
   output=$case_dir/runs/$(date +%Y%m%d-%H%M%S).md
 
+  local context=
+  if [[ -f $case_dir/context.md ]]; then
+    context=$(cat "$case_dir/context.md")
+  fi
+
   echo "=== $case_id ==="
-  REPO_DIR=$work \
+  PROJECT_CONTEXT=$context \
+    REPO_DIR=$work \
     ACTION_DIR=$ACTION_DIR \
     PERSPECTIVE=$perspective \
     DIFF_RANGE=main...HEAD \

@@ -27,3 +27,9 @@ jobs:
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           perspective: ui-react
+          # 呼び出し元の前提。省略した点は Claude がリポジトリを読んで確認する。
+          context: |
+            - React 18 / TypeScript
+            - テストは Vitest + Testing Library
+            - スタイルは CSS Modules とデザイントークン（src/tokens）
+            - 共通コンポーネントは forwardRef でネイティブ要素に ref を渡す

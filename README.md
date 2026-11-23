@@ -36,10 +36,28 @@ GitHub Actions 用 PR レビューミドルウェア。
 | `anthropic_api_key` | （必須） | Anthropic の APIキー |
 | `github_token` | `github.token` | PR にコメントするためのトークン |
 | `perspective` | `ui-react` | 使う観点MDの名前 |
+| `context` | なし | 呼び出し元の前提（テストランナー、スタイリングの方法、既存の規約など）。複数行で書ける |
 | `max_turns` | `30` | Claude Code セッションの最大ターン数 |
 | `max_budget_usd` | なし | 1回のレビューにかけてよい上限金額（USD） |
 | `model` | Claude Code の既定 | 使うモデル |
 | `claude_code_version` | `latest` | インストールする Claude Code のバージョン |
+
+### 呼び出し元の前提
+
+テストランナーやスタイリングの方法、既存コンポーネントの規約は呼び出し元ごとに違うため、amon-reviewer 側では決め打ちしません。
+
+- `context` に書いた前提があれば、それに照らしてレビューします
+- `context` を省略した点は、Claude が package.json・設定ファイル・既存の類似コンポーネント・CLAUDE.md などを読んで確認します
+
+```yaml
+- uses: AmonOhno/amon-reviewer@main
+  with:
+    anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+    context: |
+      - React 18 / TypeScript
+      - テストは Vitest + Testing Library
+      - 共通コンポーネントは forwardRef でネイティブ要素に ref を渡す
+```
 
 ### 観点MDの上書き
 
@@ -49,8 +67,9 @@ GitHub Actions 用 PR レビューミドルウェア。
 ## 手元で試す
 
 ```bash
-# 今いるリポの main との差分をレビューする
-DIFF_RANGE=main...HEAD PERSPECTIVE=ui-react /path/to/amon-reviewer/scripts/review.sh
+# 今いるリポの main との差分をレビューする（PROJECT_CONTEXT は省略可）
+DIFF_RANGE=main...HEAD PERSPECTIVE=ui-react PROJECT_CONTEXT="テストは Vitest" \
+  /path/to/amon-reviewer/scripts/review.sh
 cat amon-review.md
 ```
 

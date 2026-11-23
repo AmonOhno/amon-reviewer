@@ -7,5 +7,5 @@
 | 1 | effect にクリーンアップがなく、keydown リスナーが残り続け、`body` の `overflow` も元に戻らない。依存配列に `onClose` がなく古い関数を呼ぶ | 状態とライフサイクル | `src/Dialog.tsx` |
 | 2 | `role="dialog"`・`aria-modal`・タイトルとの関連付け（`aria-labelledby`）がない | アクセシビリティ | `src/Dialog.tsx` |
 | 3 | 開いたときにフォーカスがダイアログ内に移らず、閉じ込めもなく、閉じたあと元の要素に戻らない | アクセシビリティ | `src/Dialog.tsx` |
-| 4 | 閉じるボタンが `<div>` で、キーボードで操作できず、「×」だけで読み上げ用の名前もない | アクセシビリティ | `src/Dialog.tsx` |
+| 4 | 閉じるボタンが `<div>` で、キーボードで操作できず、「×」だけで読み上げ用の名前もない。既存の `Button`（`src/Button.tsx`）を使っていない | アクセシビリティ | `src/Dialog.tsx` |
 | 5 | テストがスナップショットだけで、Esc や背景クリックで閉じる振る舞いを検証していない | テスト | `src/Dialog.test.tsx` |

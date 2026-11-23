@@ -1,0 +1,3 @@
+- React 18 / TypeScript
+- テストは node:test と Testing Library
+- スタイルはインラインの style と className（デザインシステムは未導入）

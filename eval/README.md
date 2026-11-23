@@ -9,13 +9,24 @@
 eval/<観点MDの名前>/<ケース名>/
 ├─ case.yml       # 概要とタグ
 ├─ expected.md    # 期待される指摘（正解）
+├─ context.md     # 呼び出し元の前提（省略可。Action の context 入力に当たる）
+├─ base/          # PR前から main にあるファイル（省略可。package.json や既存コンポーネントなど）
 ├─ fixture/       # サンプルPRで追加されるファイル
 └─ runs/          # scripts/eval.sh の実行結果（日時ごと）
 ```
 
+### 前提の渡し方
+
+本番と同じく、前提は2通りで渡します。両方の経路を評価できるよう、ケースによって使い分けます。
+
+- **context.md あり**：前提をパラメータとして渡す経路。text-field・option-list・toast-notification
+- **context.md なし**：Claude が base/ の package.json や既存コンポーネントを読んで前提を確かめる経路。dialog
+
+前提は、ケースのコードが特定の環境に寄りすぎないよう、React 18 / TypeScript / node:test と Testing Library / インラインの style と className という素朴な構成にそろえています。
+
 - ケース名は、題材にした部品の種類（`dialog`、`option-list` など）で付けます
 - 1つのケースに複数の観点の問題を含めてかまいません。`case.yml` の `tags` に、含まれる観点を書きます
-- `fixture/` は Git リポジトリの main（README だけ）に追加される差分として扱われます
+- `fixture/` は、main（README と base/ の中身）に追加される差分として扱われます
 
 ### tags
 

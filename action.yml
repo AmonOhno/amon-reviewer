@@ -14,6 +14,12 @@ inputs:
     description: 使う観点MDの名前。対象リポの .amon-reviewer/<名前>.md、なければ amon-reviewer の perspectives/<名前>.md を使う
     required: false
     default: ui-react
+  context:
+    description: >-
+      呼び出し元の前提（テストランナー、スタイリングの方法、既存コンポーネントの規約など）。
+      複数行で書ける。省略した点は Claude がリポジトリを読んで確認する
+    required: false
+    default: ""
   max_turns:
     description: Claude Code セッションの最大ターン数
     required: false
@@ -48,6 +54,7 @@ runs:
         ACTION_DIR: ${{ github.action_path }}
         REPO_DIR: ${{ github.workspace }}
         PERSPECTIVE: ${{ inputs.perspective }}
+        PROJECT_CONTEXT: ${{ inputs.context }}
         MAX_TURNS: ${{ inputs.max_turns }}
         MAX_BUDGET_USD: ${{ inputs.max_budget_usd }}
         CLAUDE_MODEL: ${{ inputs.model }}
